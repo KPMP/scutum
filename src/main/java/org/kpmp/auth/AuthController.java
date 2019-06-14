@@ -40,6 +40,7 @@ public class AuthController {
         String redirectURL = request.getParameter("redirect");
         session = httpSession;
         User user = userService.getUser(request, encoder);
+        System.out.println("user from shib headers " + session.getId() + " " + user.getDisplayName());
         session.setAttribute("user", user);
         return new RedirectView(redirectURL);
     }
@@ -53,18 +54,22 @@ public class AuthController {
             DecodedJWT verifiedToken = tokenService.verifyToken(tokenString);
             if (verifiedToken != null) {
                 auth.setToken(verifiedToken.getToken());
+                System.out.println("user from token " + session.getId() + " " + tokenService.getUserFromToken(verifiedToken).getDisplayName());
                 auth.setUser(tokenService.getUserFromToken(verifiedToken));
             }
         }
 
         if (session != null && auth.getToken() == null) {
             User user = (User) session.getAttribute("user");
+            System.out.println("user from session " + session.getId() + " " + user.getDisplayName());
             tokenString = tokenService.buildTokenWithUser(user);
             auth.setToken(tokenString);
             auth.setUser(user);
             session = null;
         }
-
+        if (auth != null) {
+            System.out.println("user from auth obj " + session.getId() + " " + auth.getUser().getDisplayName());
+        }
         return auth;
     }
 
