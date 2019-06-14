@@ -65,10 +65,8 @@ public class AuthController {
             tokenString = tokenService.buildTokenWithUser(user);
             auth.setToken(tokenString);
             auth.setUser(user);
-            session = null;
-        }
-        if (auth != null) {
             System.out.println("user from auth obj " + session.getId() + " " + auth.getUser().getDisplayName());
+            session = null;
         }
         return auth;
     }
