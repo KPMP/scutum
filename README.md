@@ -1,48 +1,17 @@
-# Authentication Service for UM KPMP Apps
+# User Portal Authentication Service for UM KPMP Apps
 
-This is the repository for the authentication service for UM KPMP apps. 
+This is the repository for the authentication service for UM KPMP apps. It connects to the UWash User Portal to get group/access information for KPMP users. 
 
-# Setup
+## Endpoint /v1/user/info/{shibId} 
 
-The /login endpoint should be the only location covered by Shibboleth, so the Apache config should look something like this:
+Returns the JSON object from UW User Portal with the information for the user with specified shibId. Throws a 404 if the user is not found. This endpoint uses the default client ID (i.e. the client ID for this app). The default clientID is set in the Docker environment variable ENV_DEFAULT_CLIENT_ID (set in the .env file).
 
-```
-  <Location "/api/login">
-    AuthType shibboleth
-    ShibRequireSession On
-    ShibUseHeaders On
-    Require valid-user
-    Header set Cache-Control "no-store, max-age=0, private"
-  </Location>
-```
+## Endpoint /v1/user/info/{clientId}/{shibId}
 
-# Usage
+Returns the JSON object from UW User Portal with the information for the user with specified shibId. Throws a 404 if the user is not found. This endpoint requires a client ID (i.e. the clientID of the application requesting the login information). 
 
-## /login Endpoint
 
-If the user does not have a JWT or a valid session, the /login endpoint should be called first to send them to Shibboleth. 
-The /login endpoint needs to be called with the "redirect" parameter so it knows where to send the user after login:
+## Return JSON
 
-`https://auth.kpmp.org/api/login?redirect=http://upload.kpmp.org`
-
-Once the user authenticates via Shibboleth, the auth service starts a session containing the user information.
-
-## /auth Endpoint
-
-The /auth endpoint does three things: 
-1) If the user has established a session, i.e. just authenticated via /login and Shibboleth, it responds with a JSON object containing a JWT token and user information and then destroys the session. 
-```
-{
-    "token": "XXXXXXXXXXXXXXXX.XXXXXXXXXXXX.XXXXXXXXXX"
-    "user": {
-        "firstName": "Jane"
-        "lastName": "Smith"
-        "displayName": "J Smith"
-        "email": "jsmith@myuniversity.org"
-    }
-}
-```
-
-2) If /auth is called with a JWT, the service checks the validity of JWT and either decodes the user information and sends back the auth response above or sends back the response with a null token and user.
-3) If /auth is called without a session or a valid JWT it returns a the response with a null token and user. 
+`{"displayName":auser,"email":"auser@email.com","_id":"12345abcdfefg","active":true,"first_name":"Firstname","groups":["user_group1","user_group2"],"last_name":"Lastname","organization_id":"543421abcdrfg","phone_numbers":["123-456-7891],"shib_id":"auser@email.com"}`
 

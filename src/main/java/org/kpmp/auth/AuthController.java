@@ -1,78 +1,69 @@
 package org.kpmp.auth;
 
-import static com.auth0.jwt.algorithms.Algorithm.HMAC512;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.Date;
-import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.servlet.view.RedirectView;
-
-import com.auth0.jwt.JWT;
-import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.exceptions.JWTVerificationException;
-import com.auth0.jwt.interfaces.DecodedJWT;
-
-import users.User;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.server.ResponseStatusException;
 
 @Controller
 public class AuthController {
 
-    private HttpSession session;
-    private ShibbolethUserService userService;
-    private UTF8Encoder encoder;
-    private TokenService tokenService;
+	private final Logger log = LoggerFactory.getLogger(this.getClass());
+	private static final String userFoundFmt = "Using default client. User with shib id {} found: {}";
+	private static final String userNotFoundFmt = "Using default client. User with shib id {} not found";
+	private static final String userClientFoundFmt = "Using client ID {}. User with shib id {} found: {}";
+	private static final String userClientNotFoundFmt = "Using client ID {}. User with shib id {} not found";
+	private static final String portalError = "There was a problem connecting to the User Portal. ";
 
-    @Autowired
-    public AuthController(ShibbolethUserService userService, UTF8Encoder encoder, TokenService tokenService) {
-        this.userService = userService;
-        this.encoder = encoder;
-        this.tokenService = tokenService;
-    }
+	private UserPortalService userPortalService;
 
-    @RequestMapping(value = "/login", method = RequestMethod.GET)
-    public @ResponseBody RedirectView login(HttpServletRequest request, HttpSession httpSession) throws UnsupportedEncodingException {
-        String redirectURL = request.getParameter("redirect");
-        session = httpSession;
-        User user = userService.getUser(request, encoder);
-        session.setAttribute("user", user);
-        return new RedirectView(redirectURL);
-    }
+	@Autowired
+	public AuthController(UserPortalService userPortalService) {
+		this.userPortalService = userPortalService;
+	}
 
-    @CrossOrigin
-    @RequestMapping(value = "/auth")
-    public @ResponseBody AuthResponse getAuth(@RequestBody Map<String, Object> payload) throws IOException {
-        AuthResponse auth = new AuthResponse();
-        String tokenString = (String) payload.get("token");
-        if (tokenString != null) {
-            DecodedJWT verifiedToken = tokenService.verifyToken(tokenString);
-            if (verifiedToken != null) {
-                auth.setToken(verifiedToken.getToken());
-                auth.setUser(tokenService.getUserFromToken(verifiedToken));
-            }
-        }
+	@RequestMapping(value = "/v1/user/info/{shibId}", method = RequestMethod.GET)
+	public @ResponseBody UserAuth getUserInfo(@PathVariable("shibId") String shibId) {
+		try {
+			UserAuth userAuth = userPortalService.getUserAuth(shibId);
+			log.info(userFoundFmt, shibId, userAuth.toString());
+			return userAuth;
+		} catch (HttpClientErrorException e) {
+			if (e.getStatusCode().equals(NOT_FOUND)) {
+				log.error(userNotFoundFmt, shibId);
+				throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User " + shibId + " not found");
+			} else {
+				log.error(portalError + e.getStatusCode());
+				throw new ResponseStatusException(e.getStatusCode(), portalError);
+			}
+		}
+	}
 
-        if (session != null && auth.getToken() == null) {
-            User user = (User) session.getAttribute("user");
-            tokenString = tokenService.buildTokenWithUser(user);
-            auth.setToken(tokenString);
-            auth.setUser(user);
-            session = null;
-        }
-
-        return auth;
-    }
+	@RequestMapping(value = "/v1/user/info/{clientId}/{shibId}", method = RequestMethod.GET)
+	public @ResponseBody UserAuth getUserInfoWithClient(@PathVariable("clientId") String clientId,
+			@PathVariable("shibId") String shibId) {
+		try {
+			UserAuth userAuth = userPortalService.getUserAuthWithClient(clientId, shibId);
+			log.info(userClientFoundFmt, clientId, shibId, userAuth.toString());
+			return userAuth;
+		} catch (HttpClientErrorException e) {
+			if (e.getStatusCode().equals(NOT_FOUND)) {
+				log.error(userClientNotFoundFmt, clientId, shibId);
+				throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+			} else {
+				log.error(portalError + e.getStatusCode());
+				throw new ResponseStatusException(e.getStatusCode(), portalError);
+			}
+		}
+	}
 
 }
