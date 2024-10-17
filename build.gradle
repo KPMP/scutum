@@ -1,6 +1,6 @@
 buildscript {
 	ext {
-		springBootVersion = '2.6.4'
+		springBootVersion = '2.7.4'
 	}
 	repositories {
 		mavenCentral()
@@ -32,7 +32,7 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	implementation 'com.auth0:java-jwt:3.18.3'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'org.jsoup:jsoup:1.14.2'
+	implementation 'org.jsoup:jsoup:1.15.3'
 	testImplementation 'junit:junit:4.12'
 }
 
@@ -42,7 +42,7 @@ springBoot {
 
 jar {
 	baseName='user-auth'
-	version='2.0'
+	version='2.1'
 }
 
 task unpack(type: Copy) {
@@ -51,8 +51,31 @@ task unpack(type: Copy) {
     into("build/dependency")
 }
 
+def getCurrentGitBranch() {
+  if (project.hasProperty('tag')) {
+    def tagValue = project.property('tag')
+    return tagValue
+  } else {
+      def gitBranch = "Unknown branch"
+      try {
+        def workingDir = new File("${project.projectDir}")
+        def result = 'git rev-parse --abbrev-ref HEAD'.execute(null, workingDir)
+        result.waitFor()
+        if (result.exitValue() == 0) {
+            gitBranch = result.text.trim()
+        }
+      } catch (e) {
+        }
+        if (gitBranch == "develop" || gitBranch == "master"){
+          return jar.version
+        }else{
+          return gitBranch
+        }
+    }
+}
+
 docker {
-    name "${project.group}/${jar.baseName}"
+    name "kingstonduo/${jar.baseName}:" + getCurrentGitBranch()
     copySpec.from(tasks.unpack.outputs).into("dependency")
     buildArgs(['DEPENDENCY': "dependency"])
 }
