@@ -1,6 +1,6 @@
 # Changelog
 
-## Release 2.1 [unreleased]
+## Release 2.2 [unreleased]
 Brief summary of what's in this release:
 
 
