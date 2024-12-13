@@ -1,18 +1,19 @@
 package org.kpmp.auth;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.server.ResponseStatusException;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class AuthControllerTest {
 
@@ -20,16 +21,13 @@ public class AuthControllerTest {
     private UserPortalService userPortalService;
     private AuthController authController;
 
-    @Rule
-    public final ExpectedException exception = ExpectedException.none();
-
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
         authController = new AuthController(userPortalService);
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         authController = null;
     }
@@ -45,18 +43,30 @@ public class AuthControllerTest {
 
     @Test
     public void testGetUserAuthNotFound() {
-        when(userPortalService.getUserAuth("shibId")).thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND));
-        exception.expect(ResponseStatusException.class);
-        exception.expectMessage("User shibId not found");
-        authController.getUserInfo("shibId");
+        String shibId = "shibId";
+        when(userPortalService.getUserAuth(shibId)).thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            authController.getUserInfo(shibId);
+        });
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertEquals("User " + shibId + " not found", exception.getReason());
+
+        verify(userPortalService).getUserAuth(shibId);
     }
 
     @Test
     public void testUserPortalProblem() {
         when(userPortalService.getUserAuth("shibId")).thenThrow(new HttpClientErrorException(HttpStatus.INTERNAL_SERVER_ERROR));
-        exception.expect(ResponseStatusException.class);
-        exception.expectMessage("There was a problem connecting to the User Portal");
-        authController.getUserInfo("shibId");
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            authController.getUserInfo("shibId");
+        });
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, exception.getStatusCode());
+        assertEquals("There was a problem connecting to the User Portal.", exception.getReason());
+        verify(userPortalService).getUserAuth("shibId");
     }
 
     @Test
@@ -71,17 +81,25 @@ public class AuthControllerTest {
     @Test
     public void testGetUserAuthWithClientNotFound() {
         when(userPortalService.getUserAuthWithClient("clientId", "shibId")).thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND));
-        exception.expect(ResponseStatusException.class);
-        exception.expectMessage("User not found");
-        authController.getUserInfoWithClient("clientId", "shibId");
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            authController.getUserInfoWithClient("clientId", "shibId");
+        });
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertEquals("User not found", exception.getReason());
+        verify(userPortalService).getUserAuthWithClient("clientId", "shibId");
     }
 
     @Test
     public void testGetUserAuthWithClientPortalProblem() {
         when(userPortalService.getUserAuthWithClient("clientId", "shibId")).thenThrow(new HttpClientErrorException(HttpStatus.INTERNAL_SERVER_ERROR));
-        exception.expect(ResponseStatusException.class);
-        exception.expectMessage("There was a problem connecting to the User Portal");
-        authController.getUserInfoWithClient("clientId", "shibId");
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            authController.getUserInfoWithClient("clientId", "shibId");
+        });
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, exception.getStatusCode());
+        assertEquals("There was a problem connecting to the User Portal.", exception.getReason());
+        verify(userPortalService).getUserAuthWithClient("clientId", "shibId");
     }
 
 }
