@@ -22,7 +22,7 @@ public class AuthController {
 	private static final String userNotFoundFmt = "Using default client. User with shib id {} not found";
 	private static final String userClientFoundFmt = "Using client ID {}. User with shib id {} found: {}";
 	private static final String userClientNotFoundFmt = "Using client ID {}. User with shib id {} not found";
-	private static final String portalError = "There was a problem connecting to the User Portal. ";
+	private static final String portalError = "There was a problem connecting to the User Portal.";
 
 	private UserPortalService userPortalService;
 

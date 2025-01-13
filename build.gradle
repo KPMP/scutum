@@ -1,17 +1,16 @@
 buildscript {
-	ext {
-		springBootVersion = '2.7.4'
-	}
-	repositories {
-		mavenCentral()
-	}
-	dependencies {
-		classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
-	}
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:3.2.5")
+    }
 }
 
 plugins {
-    id 'com.palantir.docker' version '0.22.1'
+    id 'java'
+    id 'com.palantir.docker' version '0.35.0'
+    id 'org.springframework.boot' version '3.2.5'
 }
 
 group = 'kingstonduo'
@@ -21,28 +20,25 @@ apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
 apply plugin: 'eclipse'
 
-sourceCompatibility = '1.8'
-targetCompatibility = '1.8'
+sourceCompatibility = '21'
+targetCompatibility = '21'
 
 repositories {
 	mavenCentral()
 }
 
 dependencies {
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	implementation 'com.auth0:java-jwt:3.18.3'
+	implementation 'com.auth0:java-jwt:4.4.0'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'org.jsoup:jsoup:1.15.3'
-	testImplementation 'junit:junit:4.12'
+	implementation 'org.jsoup:jsoup:1.18.3'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation('org.mockito:mockito-junit-jupiter:3.12.4')
 }
+
+version='2.2'
 
 springBoot {
 	mainClass = "org.kpmp.Application"
-}
-
-jar {
-	baseName='user-auth'
-	version='2.1'
 }
 
 task unpack(type: Copy) {
@@ -67,7 +63,7 @@ def getCurrentGitBranch() {
       } catch (e) {
         }
         if (gitBranch == "develop" || gitBranch == "master"){
-          return jar.version
+          return project.version
         }else{
           return gitBranch
         }
@@ -75,7 +71,7 @@ def getCurrentGitBranch() {
 }
 
 docker {
-    name "kingstonduo/${jar.baseName}:" + getCurrentGitBranch()
+    name "kingstonduo/user-auth:" + getCurrentGitBranch()
     copySpec.from(tasks.unpack.outputs).into("dependency")
     buildArgs(['DEPENDENCY': "dependency"])
 }
