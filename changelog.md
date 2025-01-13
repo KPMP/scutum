@@ -2,7 +2,7 @@
 
 ## Release 2.2 [unreleased]
 Brief summary of what's in this release:
-
+- Upgrade to Java 21
 
 ### Breaking changes
 
