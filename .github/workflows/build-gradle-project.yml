@@ -38,11 +38,16 @@ jobs:
         run: |
          ./gradlew build docker
 
-      - name: Push to Docker Hub if branch is develop
+      - name: Push to Docker Hub if branch is develop 
         if: steps.branch-names.outputs.current_branch == 'develop'
         run: | 
          docker push "kingstonduo/user-auth:$IMAGE_TAG"
-        
+
+      - name: Push to Docker Hub if branch is master 
+        if: steps.branch-names.outputs.current_branch == 'master'
+        run: | 
+         docker push "kingstonduo/user-auth:$IMAGE_TAG"
+      
       - name: Push to Docker Hub if branch is not develop
         if: steps.branch-names.outputs.current_branch != 'develop'
         run: |
