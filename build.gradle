@@ -9,8 +9,7 @@ buildscript {
 
 plugins {
     id 'java'
-    id 'com.palantir.docker' version '0.35.0'
-    id 'org.springframework.boot' version '3.2.5'
+    id 'org.springframework.boot' version '4.0.6'
 }
 
 group = 'kingstonduo'
@@ -31,7 +30,8 @@ dependencies {
 	implementation 'com.auth0:java-jwt:4.4.0'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.jsoup:jsoup:1.18.3'
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	implementation("org.apache.tomcat.embed:tomcat-embed-core:11.0.22")
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation('org.mockito:mockito-junit-jupiter:3.12.4')
 }
 
@@ -70,8 +70,7 @@ def getCurrentGitBranch() {
     }
 }
 
-docker {
-    name "kingstonduo/user-auth:" + getCurrentGitBranch()
-    copySpec.from(tasks.unpack.outputs).into("dependency")
-    buildArgs(['DEPENDENCY': "dependency"])
+bootBuildImage {
+    imageName = "kingstonduo/user-auth:" + getCurrentGitBranch()
+    createdDate = "now"
 }
