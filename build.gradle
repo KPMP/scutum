@@ -20,6 +20,8 @@ repositories {
 	mavenCentral()
 }
 
+ext['tomcat.version'] = '10.1.55'
+
 dependencies {
 	implementation 'com.auth0:java-jwt:4.4.0'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
